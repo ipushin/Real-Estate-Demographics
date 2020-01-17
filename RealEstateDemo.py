@@ -225,8 +225,8 @@ def dem_transform(df):
 zip_dem = dem_transform(zip_data)
 
 
-zip_dem.to_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
-zip_dem = pd.read_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
+#zip_dem.to_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
+#zip_dem = pd.read_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
 st.write( "We are going to investigate census demographic data of the hottest ZIP indexes "
          "according to ranking. Comparing ZIP codes with hot real estate market to other areas in the city"
          "we're revealing differences and similarities in demographic data. In the menu below you can select "
@@ -304,8 +304,8 @@ st.plotly_chart(fig)
 fig = go.Figure()
 plot_hot(option2)
 fig.update_layout(title_text=option2,
-                  width=1200,
-                  height=1000,
+                  width=900,
+                  height=700,
                   xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()))
 fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EEEEEE')
 st.plotly_chart(fig)
@@ -319,7 +319,7 @@ x = city_zip_dem['major_city']
 fig.add_trace(go.Box(y=y, x=x,fillcolor='rgba(0,0,0,0)', line = dict(color = 'blue')))
 fig.update_layout(title_text=option3,
                   width=900,
-                  height=500,
+                  height=700,
                   plot_bgcolor='rgba(0,0,0,0)',
                   xaxis=dict(tickangle=-45),
                   yaxis=dict(gridcolor='#EEEEEE', nticks=15)
