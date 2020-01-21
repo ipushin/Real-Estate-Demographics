@@ -1,72 +1,76 @@
 import streamlit as st
-# To make things easier later, we're also importing numpy and pandas for
-# working with sample data.
-import numpy as np
 import pandas as pd
-
-import plotly.figure_factory as ff
-
+from uszipcode import SearchEngine
+import numpy as np
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-from datetime import datetime
-
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
 import re
 from pandas.io.json import json_normalize
 import json
-#from sklearn.preprocessing import MinMaxScaler,StandardScaler
-
-#parsing
 import cfscrape
 from lxml import etree
-#graphs
 import colorlover as cl
 import plotly.graph_objects as go
-from plotly.offline import init_notebook_mode, iplot
-from plotly.subplots import make_subplots
-
 from PIL import Image
 import requests
 from io import BytesIO
 
+#title image
 response = requests.get('https://images.unsplash.com/photo-1501595685668-178fc57e6146?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80')
 image = Image.open(BytesIO(response.content))
 
+#title
 st.title('The hottest zipcodes and demography statistics')
+st.subheader('This app helps to get US Census demographics data, visualize hidden data patterns '
+         'and investigate how hottest areas differ from ordinary ones')
+st.image(image, use_column_width=True)
 
-#hottest market by Realtor
+#getting hot zip data
+@st.cache(allow_output_mutation=True)
+def get_hot_zips():
+    url_zip = 'https://www.realtor.com/research/hottest-zip-codes-2019/'
+    scraper = cfscrape.create_scraper()
+    scraped_html=scraper.get(url_zip).content
+    html = etree.HTML(scraped_html)
+
+    hot_zip = {}
+    for i in range(1,11):
+        zipcode = html.xpath("//*[@id='post-2223']/div/table[1]/tbody/tr")[i].xpath("td[2]/a/text()")
+        name = html.xpath("//*[@id='post-2223']/div/table[1]/tbody/tr")[i].xpath("td[3]/a/text()")
+        hot_zip[zipcode[0]] = name[0]
+    hot_zip = pd.DataFrame(list(hot_zip.items()), columns=['ZIPcode', 'City, State'], index=range(0,10))
+    hot_zip['Rank'] = np.arange(1, 11)
+    hot_zip['ZIPcode'] = hot_zip['ZIPcode'].astype(int)
+    return hot_zip
+hot_zip = get_hot_zips()
+
+st.write('While zip codes rather represent urban planning logic and poorly reveal with '
+         'real economic activity, they remain valuable real estate instruments for data '
+         'segmentation. Having demographics data connected to zip codes we can easily '
+         'compare areas with active and slow real estate markets.')
+
+#getting Realtor survey link
+@st.cache(allow_output_mutation=True, show_spinner=False)
+def make_clickable(url, text):
+    return f'<a target="_blank" href="{url}">{text}</a>'
+
 url_zip = 'https://www.realtor.com/research/hottest-zip-codes-2019/'
-scraper = cfscrape.create_scraper()
-scraped_html=scraper.get(url_zip).content
-html = etree.HTML(scraped_html)
-
-hot_zip = {}
-for i in range(1,11):
-    zipcode = html.xpath("//*[@id='post-2223']/div/table[1]/tbody/tr")[i].xpath("td[2]/a/text()")
-    name = html.xpath("//*[@id='post-2223']/div/table[1]/tbody/tr")[i].xpath("td[3]/a/text()")
-    hot_zip[zipcode[0]] = name[0]
-hot_zip = pd.DataFrame(list(hot_zip.items()), columns=['ZIPcode', 'City, State'])
-hot_zip['Rank'] = np.arange(1, 11)
-hot_zip['ZIPcode'] = hot_zip['ZIPcode'].astype(int)
-
-
-
-st.write("Despite of the fact that zipcodes don't realy correspond with real boundaries of market processes "
-         "they are still used as a benchmark for market analysis. Here a ranking calculated by Realtor in order to"
-         "mark the hottest area with the most active real estate market.")
-st.markdown('Hottest zipcodes according to Realtor Ranking')
+link = make_clickable(url_zip,'Realtor')
+st.write('Here is a list of zip codes marked as :fire: real estate markets by {} in 2019.'.format(link), unsafe_allow_html = True)
 st.write(hot_zip)
 
-from uszipcode import SearchEngine
+#getting other zip codes data
+@st.cache(allow_output_mutation=True, show_spinner=False)
+def get_other_zip():
+    zip_data = pd.DataFrame()
+    for i in hot_zip['ZIPcode'].unique():
+        search = SearchEngine(simple_zipcode=False)
+        zipcode = search.by_zipcode(i)
+        table = json_normalize(json.loads(zipcode.to_json()))
+        zip_data = pd.concat([zip_data, table], axis=0)
+    zip_data = zip_data.reset_index(drop=True)
+    return zip_data
 
-zip_data = pd.DataFrame()
-for i in hot_zip['ZIPcode'].unique():
-    search = SearchEngine(simple_zipcode=False)
-    zipcode = search.by_zipcode(i)
-    table = json_normalize(json.loads(zipcode.to_json()))
-    zip_data = pd.concat([zip_data, table], axis=0)
-zip_data = zip_data.reset_index(drop=True)
+zip_data = get_other_zip()
 
 for i in range(0, hot_zip.shape[0]):
     if zip_data['zipcode'].unique()[i] != hot_zip['ZIPcode'].unique().astype(str)[i]:
@@ -120,6 +124,7 @@ col_names = ['income_source',
              'rent_2b',
              'rent_3b',
              'rent_studio']
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def dem_transform(df):
     data = pd.DataFrame()
     for n in range(0, df.shape[0]):
@@ -228,53 +233,59 @@ def dem_transform(df):
     data.loc[:, 'lat':'vacancy: vacant for other reasons'] = data.loc[:,
                                                              'lat':'vacancy: vacant for other reasons'].astype(float)
     return data
-
 zip_dem = dem_transform(zip_data)
-
 
 #zip_dem.to_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
 #zip_dem = pd.read_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/zip_dem.csv')
-st.write( "We are going to investigate census demographic data of the hottest ZIP indexes "
-         "according to ranking. Comparing ZIP codes with hot real estate market to other areas in the city"
-         "we're revealing differences and similarities in demographic data. In the menu below you can select "
-          "among about 100 different stat data fields with regard to the zipcode")
+st.write(' ')
+st.write(' ')
+st.write( "Below are the instruments which help us connect to the US Census database, visualize data and "
+          "choose any statistical measures with regards to earnings, education, age, household income "
+          "and more than dozen different data sections.")
 
-columns = st.multiselect('Select stat data', zip_dem.columns.to_list())
-list = ['zipcode', 'major_city']
+columns = st.multiselect('Select data section', zip_dem.columns.to_list())
+list = ['zipcode', 'major_city','population']
 list.extend(columns)
 st.write(zip_dem[list])
 
 ''' 
 '''
-city_zip = []
-for i in range(0, zip_dem.shape[0]):
-    search = SearchEngine(simple_zipcode=False)
-    res = search.query(city=zip_dem['major_city'][i], state=zip_dem['state'][i], returns=100)
-    for zipcode in res:
-        city_zip.append(zipcode.zipcode)
+@st.cache(allow_output_mutation=True, show_spinner=False)
+def get_city_data():
+    city_zip = []
+    for i in range(0, zip_dem.shape[0]):
+        search = SearchEngine(simple_zipcode=False)
+        res = search.query(city=zip_dem['major_city'][i], state=zip_dem['state'][i], returns=100)
+        for zipcode in res:
+            city_zip.append(zipcode.zipcode)
 
-city_data = pd.DataFrame()
-for i in city_zip:
-    zipcode = search.by_zipcode(i)
-    table = json_normalize(json.loads(zipcode.to_json()))
-    city_data = pd.concat([city_data, table], axis=0)
-city_data = city_data.reset_index(drop=True)
+    city_data = pd.DataFrame()
+    for i in city_zip:
+        zipcode = search.by_zipcode(i)
+        table = json_normalize(json.loads(zipcode.to_json()))
+        city_data = pd.concat([city_data, table], axis=0)
+    city_data = city_data.reset_index(drop=True)
 
-city_data.dropna(inplace=True)
-city_data = city_data.replace({None:np.nan})
-city_data = city_data.reset_index(drop=True)
-
+    city_data.dropna(inplace=True)
+    city_data = city_data.replace({None:np.nan})
+    city_data = city_data.reset_index(drop=True)
+    return city_data
+city_data = get_city_data()
 city_zip_dem = dem_transform(city_data)
 #city_zip_dem.to_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/city_zip_dem.csv')
 #city_zip_dem = pd.read_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/city_zip_dem.csv')
 
+@st.cache()
 def plot_hot(feature):
     colors = cl.scales['5']['qual']['Pastel1'] + cl.scales['5']['qual']['Pastel2']
     for i, j in enumerate(city_zip_dem['major_city'].unique()):
         x = city_zip_dem[city_zip_dem['major_city'] == j]['zipcode'].values
         y = city_zip_dem[city_zip_dem['major_city'] == j][feature].values#.sort_values(feature)
         zip_list = city_zip_dem[city_zip_dem['major_city'] == j]['zipcode'].to_list()
-        index = np.where(np.array(zip_list) == hot_zip['ZIPcode'].unique().astype(str)[i])[0][0]
+        if hot_zip['ZIPcode'].unique().astype(str)[i] in zip_list:
+            index = np.where(np.array(zip_list) == hot_zip['ZIPcode'].unique().astype(str)[i])[0][0]
+        else:
+            index = 0
         width = np.zeros(len(zip_list)).tolist()
         width[index]= 2.5
         a='ZIP '+ x
@@ -290,20 +301,21 @@ def plot_hot(feature):
                       xaxis = dict(showticklabels=True)
                      )
 
-#fig = make_subplots(rows=3, cols=1, vertical_spacing = 0.06, shared_xaxes=True,
-                   #subplot_titles=("median_household_income","population", "owner_home_values: 150k-199k")) #, shared_xaxes=True,
+
 #col1 = st.sidebar.multiselect('Choose feature to analyse', city_zip_dem.columns)
 
 
-st.title('Select features to compare')
-option1 = st.selectbox('Feature 1', city_zip_dem.columns.to_list())
-option2 = st.selectbox('Feature 2', city_zip_dem.columns.to_list())
+st.markdown('**Select data to compare two statistical features** :fire: _zip codes colored red_')
+#st.markdown(')
+
+option1 = st.selectbox('first feature', city_zip_dem.columns.to_list())
+option2 = st.selectbox('second feature', city_zip_dem.columns.to_list())
 
 fig = go.Figure()
 plot_hot(option1)
 fig.update_layout(title_text=option1,
-                  width=700,
-                  height=400,
+                  width=1200,
+                  height=1000,
                   xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()))
 fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EEEEEE')
 st.plotly_chart(fig)
@@ -311,13 +323,41 @@ st.plotly_chart(fig)
 fig = go.Figure()
 plot_hot(option2)
 fig.update_layout(title_text=option2,
-                  width=700,
-                  height=400,
+                  width=1200,
+                  height=1000,
                   xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()))
 fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EEEEEE')
 st.plotly_chart(fig)
 
-st.write('Select feature to boxplot')
+barplot = st.checkbox('Show barplot')
+if barplot:
+    y = city_zip_dem['median_home_value']
+    x = city_zip_dem['major_city']
+    fig = go.Figure()
+    fig.add_trace(go.Box(y=y, x=x, fillcolor='rgba(0,0,0,0)', line=dict(color='blue')))
+    fig.update_layout(title_text='median_home_value',
+                      width=900,
+                      height=500,
+                      plot_bgcolor='rgba(0,0,0,0)',
+                      xaxis=dict(tickangle=-45),
+                      yaxis=dict(gridcolor='#EEEEEE', nticks=15)
+                      )
+    st.plotly_chart(fig)
+boxplot = st.checkbox('Show boxplot')
+if boxplot:
+    fig = go.Figure([go.Bar(x=city_zip_dem[city_zip_dem['major_city'] == 'Omaha']['zipcode'],
+                            y=city_zip_dem[city_zip_dem['major_city'] == 'Omaha']['median_home_value'].sort_values(), width=0.7)])
+    fig.update_layout(title_text='median_home_value',
+                      width=700,
+                      height=400,
+                      plot_bgcolor='rgba(0,0,0,0)',
+                      xaxis=dict(tickangle=-45),
+                      bargap=0.1,
+                      )
+    st.plotly_chart(fig)
+
+st.write('Select data to show distribution')
+option3 = 'population'
 option3 = st.selectbox('Feature', city_zip_dem.columns.to_list())
 fig = go.Figure()
 y = city_zip_dem[option3]
@@ -325,8 +365,8 @@ x = city_zip_dem['major_city']
 
 fig.add_trace(go.Box(y=y, x=x,fillcolor='rgba(0,0,0,0)', line = dict(color = 'blue')))
 fig.update_layout(title_text=option3,
-                  width=700,
-                  height=400,
+                  width=900,
+                  height=500,
                   plot_bgcolor='rgba(0,0,0,0)',
                   xaxis=dict(tickangle=-45),
                   yaxis=dict(gridcolor='#EEEEEE', nticks=15)
@@ -358,9 +398,11 @@ group_df = group_df.astype(int)
 
 fig = go.Figure()
 colors = ['magenta', 'green', 'blue']
-stat = st.multiselect('Choose stat to display', ['earnings: 65k-100k per population',
-                                                         'earnings: under 19k per population',
+select = st.multiselect('Choose stat to display', ['earnings: under 19k per population',
                                                          'vacant units per total households'])
+stat = ['earnings: 65k-100k per population']
+stat.extend(select)
+
 for i,j in enumerate(stat):
     fig.add_trace(go.Bar(x=group_df.index,
                          y=group_df[j].sort_values().values,
@@ -387,10 +429,42 @@ fig.update_layout(
 )
 st.plotly_chart(fig)
 
+@st.cache()
+def bar_stacked_plot(first_col, last_col):
+    plot = zip_dem.copy()
+    plot = plot.loc[:, first_col:last_col].join(plot['zipcode'])
+    plot['zipcode'] = 'ZIP ' + plot['zipcode'].astype(str)
+    plot['Total'] = plot.loc[:, first_col:last_col].sum(axis=1)
 
+    for i in plot.columns[0:-2]:
+        plot[i] = plot[i] / plot['Total'] * 100
+    plot.drop(columns=['Total'], inplace=True)
 
+    colors = ["#239B56", "#28B463", '#2ECC71', '#58D68D', '#82E0AA', '#90E0AA', '#EAFAF1']
+    color_text = ["white", "white", 'white', 'white', 'white', '#90E0AA', '#EAFAF1']
+    x = plot['zipcode'].to_list()
 
+    for i, j in enumerate(plot.columns[0:-1]):
+        fig.add_trace(go.Bar(y=x,
+                             x=plot[j].values,
+                             orientation='h',
+                             name=j,
+                             text=plot[j].values.astype(int),
+                             textposition='inside',
+                             texttemplate="%{text}%",
+                             textfont={'family': "PT Sans", 'size': 12, 'color': color_text[i]},
+                             marker_color=colors[i]
+                             ),
+                      )
+fig = go.Figure()
 
-
-
-#streamlit run RealEstateDemo.py
+bar_stacked_plot('age: under 10','age: over 80')
+fig.update_layout(barmode='stack',
+                  title_text='Age distribution on zip codes',
+                  width=900,
+                  height=400,
+                  paper_bgcolor='rgba(0,0,0,0)',
+                  plot_bgcolor='rgba(0,0,0,0)',
+                  bargap=0
+                 )
+st.plotly_chart(fig)
