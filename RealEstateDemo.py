@@ -26,6 +26,13 @@ import plotly.graph_objects as go
 from plotly.offline import init_notebook_mode, iplot
 from plotly.subplots import make_subplots
 
+from PIL import Image
+import requests
+from io import BytesIO
+
+response = requests.get('https://images.unsplash.com/photo-1501595685668-178fc57e6146?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80')
+image = Image.open(BytesIO(response.content))
+
 st.title('The hottest zipcodes and demography statistics')
 
 #hottest market by Realtor
