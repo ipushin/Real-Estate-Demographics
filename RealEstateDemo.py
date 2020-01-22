@@ -313,8 +313,8 @@ option2 = st.selectbox('second feature', city_zip_dem.loc[:,'population':].colum
 fig = go.Figure()
 plot_hot(option1)
 fig.update_layout(title_text=option1,
-                  width=1200,
-                  height=1000,
+                  width=800,
+                  height=600,
                   xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()),
                   margin = go.layout.Margin(l=0, r=0, b=50, t=50)
                   )
@@ -330,8 +330,8 @@ x = city_zip_dem['major_city']
 
 fig.add_trace(go.Box(y=y, x=x,fillcolor='rgba(0,0,0,0)', line = dict(color = 'blue')))
 fig.update_layout(#title_text=option3,
-                  width=900,
-                  height=500,
+                  width=800,
+                  height=600,
                   plot_bgcolor='rgba(0,0,0,0)',
                   xaxis=dict(tickangle=-45),
                   yaxis=dict(gridcolor='#EEEEEE', nticks=15),
@@ -347,7 +347,7 @@ def grouped_bars(df, stat, tickformat=''):
                         )
                  )
     fig.update_layout(barmode='group',
-                      xaxis_tickangle=-45, width=900, height=500,
+                      xaxis_tickangle=-45, width=800, height=500,
                       yaxis=dict(gridcolor='#EEEEEE', nticks=10, tickformat = tickformat),
                       plot_bgcolor='rgba(0,0,0,0)',
                       margin = go.layout.Margin(l=0, r=0, b=50, t=0),
@@ -407,7 +407,7 @@ if data_type == 'percentage': #and data_field != 'income' and data_field != 'rea
 elif data_type == 'numeric':
     fig = go.Figure()
     grouped_bars(group_df, stat)
-    st.plotly_chart(fig, width=700)
+    st.plotly_chart(fig)
 else:
    st.write('_Available only for demographics data_')
 
@@ -455,7 +455,7 @@ bar_stacked_plot(city, city_zip_dem.columns[index_start], city_zip_dem.columns[i
 
 fig.update_layout(barmode='stack',
                   #title_text=feature,
-                  width=900,
+                  width=800,
                   height=1000,
                   yaxis_nticks =50,
                   paper_bgcolor='rgba(0,0,0,0)',
@@ -474,4 +474,4 @@ if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
     height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*70
 else:
     height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*28
-st.plotly_chart(fig, height=height, width=800)
+st.plotly_chart(fig, height=height)
