@@ -13,6 +13,8 @@ import plotly.graph_objects as go
 from PIL import Image
 import requests
 from io import BytesIO
+import pydeck as pdk
+
 
 #title image
 response = requests.get('https://images.unsplash.com/photo-1501595685668-178fc57e6146?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80')
@@ -43,7 +45,7 @@ def get_hot_zips():
     return hot_zip
 hot_zip = get_hot_zips()
 
-st.write('While zip codes rather represent urban planning logic and poorly reveal with '
+st.write('While zip codes rather represent urban planning logic and poorly reveal '
          'real economic activity, they remain valuable real estate instruments for data '
          'segmentation. Having demographics data connected to zip codes we can easily '
          'compare areas with active and slow real estate markets.')
@@ -221,11 +223,10 @@ def dem_transform(df):
     data.drop(columns=[x for x in data.columns if re.search(r'(rent_)', x) != None], inplace=True)
 
     new_columns = ['zipcode', 'major_city', 'county', 'state', 'lat', 'lng', 'population']
-    for i in ['Age', 'gender', 'race', 'Children_age', 'kids', 'school enrlolment', 'House_hold_head_age',
-              'family', 'Earnings', 'employment', 'education', 'income_source', 'investment_income',
-              'median_household_income',
-              'Household_income', 'occupied_housing_units', 'occupancy', 'median_home_value', 'owner_home_values',
-              'rental prop', 'Rent_', 'vacancy']:
+    for i in ['Age:','gender:','race:','Children_age:','kids:','school enrlolment:','House_hold_head_age:',
+              'family:','Earnings:','employment:','education:','Household_income:','median_household_income','median_home_value','income_source','investment_income',
+              'occupied_housing_units','occupancy:','owner_home_values:',
+              'rental prop','Rent_','vacancy']:
         columns = [x for x in data.columns if i in x]
         new_columns.extend(columns)
     data = data[new_columns].reset_index(drop=True)
@@ -242,8 +243,8 @@ st.write(' ')
 st.write( "Below are the instruments which help us connect to the US Census database, visualize data and "
           "choose any statistical measures with regards to earnings, education, age, household income "
           "and more than dozen different data sections.")
-
-columns = st.multiselect('Select data section', zip_dem.columns.to_list())
+st.write('**Select demographic data to show in the table below**')
+columns = st.multiselect('choose column', zip_dem.columns.to_list())
 list = ['zipcode', 'major_city','population']
 list.extend(columns)
 st.write(zip_dem[list])
@@ -275,7 +276,7 @@ city_zip_dem = dem_transform(city_data)
 #city_zip_dem.to_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/city_zip_dem.csv')
 #city_zip_dem = pd.read_csv('/Users/macbook/PycharmProjects/streamlit/RealEstateDemo/city_zip_dem.csv')
 
-@st.cache()
+#@st.cache()
 def plot_hot(feature):
     colors = cl.scales['5']['qual']['Pastel1'] + cl.scales['5']['qual']['Pastel2']
     for i, j in enumerate(city_zip_dem['major_city'].unique()):
@@ -292,146 +293,128 @@ def plot_hot(feature):
         fig.add_trace(go.Bar(x=a,
                              y=y,
                              marker = dict(color=colors[i], line = dict(color = 'red', width = width))
-                             ),
-                      #row=row,
-                      #col=col
+                             )
                      )
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)',
                       showlegend=False,
-                      xaxis = dict(showticklabels=True)
+                      xaxis=dict(showticklabels=True),
+                      margin=go.layout.Margin(l=0, r=0, b=50, t=50)
                      )
-
 
 #col1 = st.sidebar.multiselect('Choose feature to analyse', city_zip_dem.columns)
 
 
-st.markdown('**Select data to compare two statistical features** :fire: _zip codes colored red_')
-#st.markdown(')
+st.markdown('**Select data to compare two statistical features** :fire: _zip codes marked red_')
 
-option1 = st.selectbox('first feature', city_zip_dem.columns.to_list())
-option2 = st.selectbox('second feature', city_zip_dem.columns.to_list())
+option1 = st.selectbox('first feature', city_zip_dem.loc[:,'population':].columns.to_list())
+option2 = st.selectbox('second feature', city_zip_dem.loc[:,'population':].columns.to_list())
+
 
 fig = go.Figure()
 plot_hot(option1)
 fig.update_layout(title_text=option1,
                   width=1200,
                   height=1000,
-                  xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()))
+                  xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()),
+                  margin = go.layout.Margin(l=0, r=0, b=50, t=50)
+                  )
+
 fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EEEEEE')
 st.plotly_chart(fig)
 
-fig = go.Figure()
-plot_hot(option2)
-fig.update_layout(title_text=option2,
-                  width=1200,
-                  height=1000,
-                  xaxis = dict(tickmode = 'array', tickangle=-45,tickvals = [7, 26, 46, 53, 68, 77, 80, 87, 93, 107], ticktext = city_zip_dem['major_city'].unique()))
-fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='#EEEEEE')
-st.plotly_chart(fig)
-
-barplot = st.checkbox('Show barplot')
-if barplot:
-    y = city_zip_dem['median_home_value']
-    x = city_zip_dem['major_city']
-    fig = go.Figure()
-    fig.add_trace(go.Box(y=y, x=x, fillcolor='rgba(0,0,0,0)', line=dict(color='blue')))
-    fig.update_layout(title_text='median_home_value',
-                      width=900,
-                      height=500,
-                      plot_bgcolor='rgba(0,0,0,0)',
-                      xaxis=dict(tickangle=-45),
-                      yaxis=dict(gridcolor='#EEEEEE', nticks=15)
-                      )
-    st.plotly_chart(fig)
-boxplot = st.checkbox('Show boxplot')
-if boxplot:
-    fig = go.Figure([go.Bar(x=city_zip_dem[city_zip_dem['major_city'] == 'Omaha']['zipcode'],
-                            y=city_zip_dem[city_zip_dem['major_city'] == 'Omaha']['median_home_value'].sort_values(), width=0.7)])
-    fig.update_layout(title_text='median_home_value',
-                      width=700,
-                      height=400,
-                      plot_bgcolor='rgba(0,0,0,0)',
-                      xaxis=dict(tickangle=-45),
-                      bargap=0.1,
-                      )
-    st.plotly_chart(fig)
-
-st.write('Select data to show distribution')
-option3 = 'population'
-option3 = st.selectbox('Feature', city_zip_dem.columns.to_list())
+st.write('**Select data to show distribution**')
+option3 = st.selectbox('Chose feature', city_zip_dem.loc[:,'population':].columns.to_list())
 fig = go.Figure()
 y = city_zip_dem[option3]
 x = city_zip_dem['major_city']
 
 fig.add_trace(go.Box(y=y, x=x,fillcolor='rgba(0,0,0,0)', line = dict(color = 'blue')))
-fig.update_layout(title_text=option3,
+fig.update_layout(#title_text=option3,
                   width=900,
                   height=500,
                   plot_bgcolor='rgba(0,0,0,0)',
                   xaxis=dict(tickangle=-45),
-                  yaxis=dict(gridcolor='#EEEEEE', nticks=15)
+                  yaxis=dict(gridcolor='#EEEEEE', nticks=15),
+                  margin = go.layout.Margin(l=0, r=0, b=50, t=0),
                  )
 st.plotly_chart(fig)
 
-group_df = city_zip_dem.groupby(['major_city']).agg({'median_home_value': 'median',
-                                                          'population': 'sum',
-                                                          'median_household_income':'median',
-                                                          'earnings: 65k-100k': 'sum',
-                                                          'occupancy: households vacant': 'sum',
-                                                          'occupied_housing_units': 'sum',
-                                                          'earnings: under 19k': 'sum'}
-                                                        )
-fig = go.Figure([go.Bar(x=group_df.index, y=group_df['population'].sort_values(), width=0.7)])
-fig.update_layout(title_text='population',
-                  width=700,
-                  height=400,
-                  plot_bgcolor='rgba(0,0,0,0)',
-                  xaxis=dict(tickangle=-45),
-                  bargap=0.1,
-                 )
-st.plotly_chart(fig)
-
-group_df['earnings: 65k-100k per population'] = group_df['earnings: 65k-100k']/group_df['population']*100
-group_df['earnings: under 19k per population'] = group_df['earnings: under 19k']/group_df['population']*100
-group_df['vacant units per total households'] = group_df['occupancy: households vacant']/(group_df['occupancy: households vacant'] + group_df['occupied_housing_units'] )*100
-group_df = group_df.astype(int)
-
-fig = go.Figure()
-colors = ['magenta', 'green', 'blue']
-select = st.multiselect('Choose stat to display', ['earnings: under 19k per population',
-                                                         'vacant units per total households'])
-stat = ['earnings: 65k-100k per population']
-stat.extend(select)
-
-for i,j in enumerate(stat):
-    fig.add_trace(go.Bar(x=group_df.index,
-                         y=group_df[j].sort_values().values,
+def grouped_bars(df, stat, tickformat=''):
+    for i,j in enumerate(stat):
+        fig.add_trace(go.Bar(x=df[j].sort_values().index,
+                         y=df[j].sort_values().values,
                          name=j,
-                         marker_color=colors[i]
                         )
                  )
-fig.update_layout(barmode='group',
-                  xaxis_tickangle=-45,
-                  yaxis_nticks=10,
-                  plot_bgcolor='rgba(0,0,0,0)'
-                 )
-fig.update_layout(
-    legend=go.layout.Legend(
-        x=0,
-        y=1,
-        traceorder="normal",
-        font=dict(
-            size=9,
-            color="black"
-        ),
-        bgcolor='rgba(0,0,0,0)'
+    fig.update_layout(barmode='group',
+                      xaxis_tickangle=-45, width=900, height=500,
+                      yaxis=dict(gridcolor='#EEEEEE', nticks=10, tickformat = tickformat),
+                      plot_bgcolor='rgba(0,0,0,0)',
+                      margin = go.layout.Margin(l=0, r=0, b=50, t=0),
+                    )
+    fig.update_layout(
+        legend=go.layout.Legend(
+            x=0.98, y=1, traceorder="normal",
+            font=dict(size=10,color="black"),
+            bgcolor='rgba(0,0,0,0)'
+        )
     )
-)
-st.plotly_chart(fig)
 
-@st.cache()
-def bar_stacked_plot(first_col, last_col):
-    plot = zip_dem.copy()
+
+st.subheader('**Choose statistical features to compare on the bar plot**')
+data_field = st.radio("What kind of data would you like to investigate?", ('demographics (age, employment, education, etc)',
+                                                                      'income',
+                                                                    'real estate (occupancy, home values, rent, etc)'))
+f = city_zip_dem.columns.get_loc
+
+@st.cache(allow_output_mutation=True)
+def grouped_df(data_field):
+    if data_field == 'demographics (age, employment, education, etc)':
+        demographics = city_zip_dem.iloc[:, np.r_[f('major_city'), f('population'):f('household_income: over 200k')]]
+        group_df = demographics.groupby(['major_city']).sum()
+
+    if data_field == 'income':
+        income = city_zip_dem.iloc[:, np.r_[f('major_city'), f('median_household_income'):f('investment_income: capital gains')]]
+        group_df = income.groupby(['major_city']).median()
+
+    if data_field == 'real estate (occupancy, home values, rent, etc)':
+        real_estate = city_zip_dem.iloc[:, np.r_[f('major_city'), f('occupied_housing_units'):f('vacancy: vacant for other reasons')]]
+        group_df = real_estate.groupby(['major_city']).sum()
+
+    return group_df
+
+group_df = grouped_df(data_field)
+
+#group_df = group_df.astype('float').round(2)
+st.write(group_df)
+select = st.multiselect('See how age, earnings or home values differ in the cities', group_df.iloc[:,0:].columns)
+
+if len(select)<1:
+    stat = [group_df.columns[1]]
+    stat.extend(select)
+else:
+    stat = select
+
+data_type = st.radio("Percentage or Numeric values?", ('percentage', 'numeric'))
+
+if data_type == 'percentage': #and data_field != 'income' and data_field != 'real estate (occupancy, home values, rent, etc)':
+    df = group_df.copy()
+    for col in df[stat].columns:
+        df[col] = (df[col]/pd.DataFrame(df.iloc[:,0:1].values)[0].values).values
+    fig = go.Figure()
+    grouped_bars(df, stat,'%')
+    st.plotly_chart(fig, width=700)
+elif data_type == 'numeric':
+    fig = go.Figure()
+    grouped_bars(group_df, stat)
+    st.plotly_chart(fig, width=700)
+else:
+   st.write('_Available only for demographics data_')
+
+
+#@st.cache()
+def bar_stacked_plot(major_city, first_col, last_col):
+    plot = city_zip_dem[city_zip_dem['major_city'] == major_city].copy()
     plot = plot.loc[:, first_col:last_col].join(plot['zipcode'])
     plot['zipcode'] = 'ZIP ' + plot['zipcode'].astype(str)
     plot['Total'] = plot.loc[:, first_col:last_col].sum(axis=1)
@@ -439,9 +422,6 @@ def bar_stacked_plot(first_col, last_col):
     for i in plot.columns[0:-2]:
         plot[i] = plot[i] / plot['Total'] * 100
     plot.drop(columns=['Total'], inplace=True)
-
-    colors = ["#239B56", "#28B463", '#2ECC71', '#58D68D', '#82E0AA', '#90E0AA', '#EAFAF1']
-    color_text = ["white", "white", 'white', 'white', 'white', '#90E0AA', '#EAFAF1']
     x = plot['zipcode'].to_list()
 
     for i, j in enumerate(plot.columns[0:-1]):
@@ -452,19 +432,46 @@ def bar_stacked_plot(first_col, last_col):
                              text=plot[j].values.astype(int),
                              textposition='inside',
                              texttemplate="%{text}%",
-                             textfont={'family': "PT Sans", 'size': 12, 'color': color_text[i]},
-                             marker_color=colors[i]
-                             ),
+                             textfont={'family': "PT Sans", 'size': 12,
+                                       'color': 'white'
+                                       },
+                             )
                       )
-fig = go.Figure()
+st.subheader('Choose city to show inside stat')
+city = st.selectbox('choose city', city_zip_dem['major_city'].unique())
 
-bar_stacked_plot('age: under 10','age: over 80')
+list_to_choose = ['age','gender','race','children_age','kids','school enrlolmen',
+ 'house_hold_head_age','family','earnings','employment','education',
+'household_income','income_source','investment_income','occupancy',
+'owner_home_values','rental prop','rent_1b','rent_2b','rent_3b','rent_studio','vacancy']
+feature = st.selectbox('choose data to plot', list_to_choose)
+fire_zip = hot_zip[hot_zip['City, State'].str.contains(city)]['ZIPcode'].values[0]
+st.write(':fire: _zip code in {} is **{}**_'.format(city, fire_zip))
+index_start = np.where([re.search('^{}:'.format(feature), x) for x in city_zip_dem.columns])[0][0]
+index_end = np.where([re.search('^{}:'.format(feature), x) for x in city_zip_dem.columns])[0][-1]
+
+fig = go.Figure()
+bar_stacked_plot(city, city_zip_dem.columns[index_start], city_zip_dem.columns[index_end])
+
 fig.update_layout(barmode='stack',
-                  title_text='Age distribution on zip codes',
+                  #title_text=feature,
                   width=900,
-                  height=400,
+                  height=1000,
+                  yaxis_nticks =50,
                   paper_bgcolor='rgba(0,0,0,0)',
                   plot_bgcolor='rgba(0,0,0,0)',
-                  bargap=0
+                  bargap=0,
+                  margin = go.layout.Margin(l=0, r=0, b=00, t=10),
                  )
-st.plotly_chart(fig)
+fig.update_layout(
+        legend=go.layout.Legend(
+            x=0.95, y=1, traceorder="normal",
+            font=dict(size=10,color="black"),
+            bgcolor='rgba(0,0,0,0)'
+        )
+    )
+if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*70
+else:
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*28
+st.plotly_chart(fig, height=height, width=800)
