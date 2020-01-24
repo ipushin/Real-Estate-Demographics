@@ -5,4 +5,4 @@
 ```
 visit: https://real-estate-demographics.herokuapp.com                      
 ```
-![Alt Text](https://giphy.com/gifs/dZXG52pp1AAlswPwBZ)
+![Alt Text](https://media.giphy.com/media/dZXG52pp1AAlswPwBZ/giphy.gif)
