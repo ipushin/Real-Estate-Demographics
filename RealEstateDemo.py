@@ -515,9 +515,9 @@ fig = go.Figure()
 bar_stacked_plot(city, city_zip_dem.columns[index_start], city_zip_dem.columns[index_end])
 
 if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*70
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*35
 else:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*28
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*15
 
 fig.update_layout(barmode='stack',
                   #title_text=feature,
