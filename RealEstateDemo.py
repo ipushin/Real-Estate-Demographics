@@ -293,7 +293,7 @@ def grouped_bars(df, stat, tickformat=''):
                         )
                  )
     fig.update_layout(barmode='group',
-                      xaxis_tickangle=-45, width=900, height=500,
+                      xaxis_tickangle=-45, width=700, height=500,
                       yaxis=dict(gridcolor='#EEEEEE', nticks=10, tickformat = tickformat),
                       plot_bgcolor='rgba(0,0,0,0)',
                       margin = go.layout.Margin(l=0, r=0, b=50, t=0),
@@ -349,13 +349,13 @@ if data_type == 'percentage': #and data_field != 'income' and data_field != 'rea
     st.write(df)
     fig = go.Figure()
     grouped_bars(df, stat,'%')
-    st.plotly_chart(fig, width=700)
+    st.plotly_chart(fig)
 
 elif data_type == 'numeric':
     fig = go.Figure()
     grouped_bars(group_df, stat)
     st.write(group_df)
-    st.plotly_chart(fig, width=700)
+    st.plotly_chart(fig)
 else:
    st.write('_Available only for demographics data_')
 
@@ -393,11 +393,11 @@ trace1 = go.Scatter(y = y_plot, x = x_plot, mode='markers+text', textposition="m
                         marker=dict(opacity=0.2, size=size2, sizemin=2),
                         textfont=dict(size=10))
 #font=dict(size=10,color="black"),
-layout = go.Layout(barmode='stack', margin=dict(l=0, r=0, b=50, t=0), height=900, width=500, title='X Distribution',
+layout = go.Layout(barmode='stack', margin=dict(l=0, r=0, b=50, t=0), height=900, width=600, title='X Distribution',
                    plot_bgcolor='#fff', paper_bgcolor='#fff', showlegend=False)
 
 fig = go.Figure(data=[trace1], layout=layout)
-st.plotly_chart(fig, height=900)
+st.plotly_chart(fig)
 
 #@st.cache()
 def bar_stacked_plot(major_city, first_col, last_col):
@@ -433,7 +433,7 @@ x = city_zip_dem['major_city']
 
 fig.add_trace(go.Box(y=y, x=x,fillcolor='rgba(0,0,0,0)', line = dict(color = 'blue')))
 fig.update_layout(#title_text=option3,
-                  width=900,
+                  width=700,
                   height=500,
                   plot_bgcolor='rgba(0,0,0,0)',
                   xaxis=dict(tickangle=-45),
@@ -514,9 +514,14 @@ index_end = np.where([re.search('^{}:'.format(feature), x) for x in city_zip_dem
 fig = go.Figure()
 bar_stacked_plot(city, city_zip_dem.columns[index_start], city_zip_dem.columns[index_end])
 
+if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*70
+else:
+    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*28
+
 fig.update_layout(barmode='stack',
                   #title_text=feature,
-                  width=900,
+                  width=700,
                   height=1000,
                   yaxis_nticks =50,
                   paper_bgcolor='rgba(0,0,0,0)',
@@ -531,8 +536,5 @@ fig.update_layout(
             bgcolor='rgba(0,0,0,0)'
         )
     )
-if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*70
-else:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*28
-st.plotly_chart(fig, height=height, width=800)
+
+st.plotly_chart(fig)
