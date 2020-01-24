@@ -3,6 +3,7 @@
 ## Streamlit web-app deployed on heroku.
 
 ```
-visit: https://real-estate-demographics.herokuapp.com                      
+https://real-estate-demographics.herokuapp.com
+(work in progress)
 ```
 ![Alt Text](https://media.giphy.com/media/dZXG52pp1AAlswPwBZ/giphy.gif)
