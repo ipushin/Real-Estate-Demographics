@@ -514,15 +514,12 @@ index_end = np.where([re.search('^{}:'.format(feature), x) for x in city_zip_dem
 fig = go.Figure()
 bar_stacked_plot(city, city_zip_dem.columns[index_start], city_zip_dem.columns[index_end])
 
-if city_zip_dem[city_zip_dem['major_city'] == city].shape[0] < 5:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*35
-else:
-    height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*15
+height = city_zip_dem[city_zip_dem['major_city'] == city].shape[0]*20
 
 fig.update_layout(barmode='stack',
                   #title_text=feature,
                   width=700,
-                  height=1000,
+                  height=height,
                   yaxis_nticks =50,
                   paper_bgcolor='rgba(0,0,0,0)',
                   plot_bgcolor='rgba(0,0,0,0)',
