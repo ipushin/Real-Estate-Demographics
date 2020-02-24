@@ -7,3 +7,5 @@ https://real-estate-demographics.herokuapp.com
 (work in progress)
 ```
 ![Alt Text](https://media.giphy.com/media/dZXG52pp1AAlswPwBZ/giphy.gif)
+![Alt Text](http://g.recordit.co/4Ojt0TR5IO.gif)
+
